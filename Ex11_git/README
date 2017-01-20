@@ -1,0 +1,25 @@
+tomer.levy1, chenal
+===============================================================================
+Tomer Levy, ID 304854938, tomer.levy1@mail.huji.ac.il 
+Chen Alon, ID 203573357, Chen.alon@mail.huji.ac.il
+===============================================================================
+
+                           Project 10 - Compile to XMl
+                           ----------------------- 
+  
+
+Submitted Files
+---------------
+README - This file.
+
+Tokenizer.py
+Compiler.py
+Makefile - recipe
+Compiler - executable script
+
+
+Remarks
+-------
+2 step compilation to Xml, we produce 2 files - <filename>T.xml
+and <filename>.xml. In the former we classify each of the valid token, i.e. tokenizing. 
+In the later we use the T.xml to compile the entire the class.

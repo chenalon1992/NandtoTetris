@@ -516,7 +516,7 @@ class Compiler:
             self.appendTokenizedLine(self.getCurToken())
             self.advanceIndex()
             self.compileExpressionList()
-        else:            
+        else:
             self.appendTokenizedLine(self.getCurToken())
             self.advanceIndex()
             return

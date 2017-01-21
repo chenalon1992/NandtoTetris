@@ -197,7 +197,7 @@ def writeArrayToFile(arrayToWrite, fileNameStr, isTokenized):
     if isTokenized:
         arrayToWrite.insert(0, '<tokens>\n')
         arrayToWrite.insert(len(arrayToWrite), "</tokens>\n")
-        fileNameStr = fileNameStr.replace("1.xml", "1T.xml")
+        fileNameStr = fileNameStr.replace(".xml", "T.xml")
     with open(fileNameStr, 'w') as outFile:
         for line in arrayToWrite:
             outFile.write(line)
@@ -218,19 +218,13 @@ def main(argv):
                 # writeArrayToFile(tokenizedArray, outputFileName, True)
                 writeArrayToFile(compilerObj.compiledArray, outputStr, False)
         else:
-            #####TO REMOVE###
-            currentDir = "/home/tomer/Dropbox/NandToTetris/Git_nand/Junk"
-            inputStrTemp = inputStr[inputStr.rindex('/'):]
-            inputStrTemp = currentDir + inputStrTemp
-            inputStrTemp = inputStrTemp.replace(".jack", "1.xml")
-            #### TO REMOVE ABOVE ####
             tokenizedArray = tokenizeFile(inputStr)
             compilerObj = Compiler.Compiler(Compiler.handleTabsArray(tokenizedArray))
             compilerObj.compileEngine()
 
-            outputFileName = inputStr.replace(".jack", "1.xml")
+            outputFileName = inputStr.replace(".jack", ".xml")
             # writeArrayToFile(tokenizedArray, outputFileName, True)
-            writeArrayToFile(compilerObj.compiledArray, inputStrTemp, False)
+            writeArrayToFile(compilerObj.compiledArray, outputFileName, False)
     except TypeError:
         print("I Love Nand")
 

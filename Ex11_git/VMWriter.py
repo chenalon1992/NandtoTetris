@@ -46,7 +46,7 @@ class VMWriter:
         self.VMArray.append(VMCommandStr)
 
     def writeFunction(self, name, nLocals):
-        VMCommandStr = 'call ' + name + ' ' + str(nLocals) + '\n'
+        VMCommandStr = 'function ' + name + ' ' + str(nLocals) + '\n'
         self.VMArray.append(VMCommandStr)
 
     def writeReturn(self):

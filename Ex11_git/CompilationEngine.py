@@ -44,6 +44,28 @@ def handleTabsArray(tabbedArray):
     return list(filter(lambda line: line != '\t', tabbedArray))
 
 
+"""
+Get segment based on kind
+"""
+
+
+def getKindAsSegment(kind):
+    # Define constants
+    STATIC_STRING = 'STATIC'
+    FIELD_STRING = 'FIELD'
+    ARG_STRING = 'ARG'
+    VAR_STRING = 'VAR'
+    if kind == STATIC_STRING:
+        return 'static'
+    elif kind == FIELD_STRING:
+        return 'this'
+    elif kind == VAR_STRING:
+        return 'local'
+    elif kind == ARG_STRING:
+        return 'argument'
+    return None
+
+
 class Compiler:
     """represents the second stage of compiling a jack file to xm
        receives the Txml in array format and runs compile engine"""
@@ -144,6 +166,7 @@ class Compiler:
         self.appendTokenizedLine(self.getCurToken())  #'class'
         self.advanceIndex()
         self.appendTokenizedLine(self.getCurToken())  #'className'
+        self.className = stripTags(self.getCurToken())  # Add class name
         self.advanceIndex()
         if not self.checkMatchForToken("{"):
             print("Error in compile class", self.curIndex)
@@ -205,22 +228,24 @@ class Compiler:
 
     def compileSubroutine(self):
         self.appendBlockTitle(True, "subroutineDec")
-        self.appendTokenizedLine(self.getCurToken())  #const func method
+        self.appendTokenizedLine(self.getCurToken())  # const func method
         self.advanceIndex()
-        self.appendTokenizedLine(self.getCurToken())  #void or type
+        self.appendTokenizedLine(self.getCurToken())  # void or type
         self.advanceIndex()
         if not getTokenType(self.getCurToken()) == "identifier":
             print("Error in compile subroutine", self.curIndex)
             return
-        self.appendTokenizedLine(self.getCurToken())  #subroutineName
+        self.appendTokenizedLine(self.getCurToken())  # subroutineName
+        subroutineName = self.className + stripTags(self.getCurToken())
         self.advanceIndex()
-        self.appendTokenizedLine(self.getCurToken())  #open brackets
+        self.appendTokenizedLine(self.getCurToken())  # open brackets
         self.advanceIndex()
         self.compileParameterList()
         self.appendTokenizedLine(self.getCurToken())  # closing brackets
         self.advanceIndex()
         self.compileSubroutineBody()
         self.appendBlockTitle(False, "subroutineDec")
+        ##TODO - Restart var and arg tables - call erase method
         return
 
     def compileSubroutineBody(self):
@@ -577,7 +602,7 @@ def main(argv):
                 writeVMArrayToFile(compilerEng.VMWriter.VMArray, VMFileStr)
         else:
             tokenizedArray = Tokenizer.tokenizeFile(inputStr)
-            compilerEng = Compiler.Compiler(Compiler.handleTabsArray(tokenizedArray))
+            compilerEng = Compiler(Compiler.handleTabsArray(tokenizedArray))
             compilerEng.compileEngine()
             outputFileName = inputStr.replace(".jack", ".xml")
             writeArrayToFile(compilerEng.compiledArray, outputFileName, False)

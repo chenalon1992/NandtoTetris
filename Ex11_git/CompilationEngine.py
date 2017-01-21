@@ -6,7 +6,7 @@ import sys
 
 
 """
-Compilation Enginge for EX11
+Compilation Engine for EX11
 """
 
 """
@@ -66,6 +66,16 @@ def getKindAsSegment(kind):
     return None
 
 
+def getWriteOperator(operator):
+    opAndCommandTable = [("+", 'add'), ("-", 'sub'), ("*", 'Math.multiply'),
+                         ('/', 'Math.divide'), ('&amp;', 'and'), ('|', 'or'),
+                         ('&lt;', 'lt'), ('&gt;', 'gt'), ("=", 'eq')]
+    for op, command in opAndCommandTable:
+        if operator == op:
+            return command
+    return None
+
+
 class Compiler:
     """represents the second stage of compiling a jack file to xm
        receives the Txml in array format and runs compile engine"""
@@ -78,6 +88,7 @@ class Compiler:
         self.compiledArray = []
         self.INDENT_SIZE = 2
         self.className = ''
+        self.labelsCounter = 0
         self.symbolsTable = SymbolTable.SymbolsTable()
         self.VMWriter = VMWriter.VMWriter()
 
@@ -190,16 +201,21 @@ class Compiler:
         return
 
     def compileVarDec(self, isClassVarDec):
+        localsCounter = 1
         if isClassVarDec:
             blockTitle = "classVarDec"
         else:
             blockTitle = "varDec"
         self.appendBlockTitle(True, blockTitle)
-        self.appendTokenizedLine(self.getCurToken())   #static or field (identifier)
+        self.appendTokenizedLine(self.getCurToken())   #static, field or var (identifier)
+        symbolKind = stripTags(self.getCurToken()).upper()
         self.advanceIndex()
         self.appendTokenizedLine(self.getCurToken())  #type (identifier) or keyword
+        symbolType = stripTags(self.getCurToken())
         self.advanceIndex()
         self.appendTokenizedLine(self.getCurToken())  #varName (identifier)
+        symbolName = stripTags(self.getCurToken())
+        self.symbolsTable.define(symbolName, symbolType, symbolKind)
         self.advanceIndex()
         if self.checkMatchForToken(';'):
             self.appendTokenizedLine(self.getCurToken())  #semicolon
@@ -214,12 +230,15 @@ class Compiler:
                     print("Error in classVarDec", self.curIndex)
                     return
                 self.appendTokenizedLine(self.getCurToken())  #varName
+                symbolName = stripTags(self.getCurToken())
+                self.symbolsTable.define(symbolName, symbolType, symbolKind)
+                localsCounter += 1
                 self.advanceIndex()
             elif self.checkMatchForToken(";"):
                 self.appendTokenizedLine(self.getCurToken())  #semicolon
                 self.appendBlockTitle(False, blockTitle)
                 self.advanceIndex()
-                return
+                return localsCounter
             else:
                 print("Error in classVarDec", self.curIndex)
                 return
@@ -229,6 +248,9 @@ class Compiler:
     def compileSubroutine(self):
         self.appendBlockTitle(True, "subroutineDec")
         self.appendTokenizedLine(self.getCurToken())  # const func method
+        subroutineType = stripTags(self.getCurToken())
+        if subroutineType == 'method':
+            self.symbolsTable.define('$%%$', '$%%$', 'ARG')
         self.advanceIndex()
         self.appendTokenizedLine(self.getCurToken())  # void or type
         self.advanceIndex()
@@ -240,26 +262,31 @@ class Compiler:
         self.advanceIndex()
         self.appendTokenizedLine(self.getCurToken())  # open brackets
         self.advanceIndex()
-        self.compileParameterList()
+        self.compileParameterList(subroutineType)
         self.appendTokenizedLine(self.getCurToken())  # closing brackets
         self.advanceIndex()
-        self.compileSubroutineBody()
+        self.compileSubroutineBody(subroutineName, subroutineType)
         self.appendBlockTitle(False, "subroutineDec")
-        ##TODO - Restart var and arg tables - call erase method
+        self.symbolsTable.eraseSubroutineTables()  #Delete temporary tables
         return
 
-    def compileSubroutineBody(self):
+    def compileSubroutineBody(self, subroutineName, subroutineType):
         self.appendBlockTitle(True, "subroutineBody")
         if not self.checkMatchForToken("{"):
             print("Error in compile subroutineBody", self.curIndex)
         self.appendTokenizedLine(self.getCurToken())  #open curly brackets
+        numOfLocals = 0
         self.advanceIndex()
-        if self.checkMatchForToken("var"):
-            while True:
-                if self.checkMatchForToken("var"):
-                    self.compileVarDec(False)
-                else:
-                    break
+        while self.checkMatchForToken("var"):
+            numOfLocals += self.compileVarDec(False)
+        self.VMWriter.writeFunction(subroutineName, numOfLocals)
+        if subroutineType == 'constructor':
+            self.VMWriter.writePush('constant', len(self.symbolsTable.symbolsTableField))
+            self.VMWriter.writeCall('Memory.alloc', 1)
+            self.VMWriter.writePop('pointer', 0)
+        if subroutineType == 'method':
+            self.VMWriter.writePush('argument', 0)
+            self.VMWriter.writePop('pointer', 0)
         self.compileStatements()
         if not self.checkMatchForToken("}"):
             print("Error in compile subroutineBody", self.curIndex)
@@ -268,27 +295,34 @@ class Compiler:
         self.advanceIndex()
         return
 
-    def compileParameterList(self):
+    def compileParameterList(self, subroutineType):
         self.appendBlockTitle(True, "parameterList")
         if self.checkMatchForToken(')'):
             self.appendBlockTitle(False, "parameterList")
             return
         self.appendTokenizedLine(self.getCurToken())  #type, parameter list not empty
+        symbolType = stripTags(self.getCurToken())
         self.advanceIndex()
         if not getTokenType(self.getCurToken()) == "identifier":
             print("Error in compiling parameters list", self.curIndex)
         self.appendTokenizedLine(self.getCurToken())  #varName
+        symbolName = stripTags(self.getCurToken())
+        symbolKind = 'ARG'
+        self.symbolsTable.define(symbolName, symbolType, symbolKind)
         self.advanceIndex()
         while True:
             if self.checkMatchForToken(","):
                 self.appendTokenizedLine(self.getCurToken())  #comma
                 self.advanceIndex()
                 self.appendTokenizedLine(self.getCurToken())  #type
+                symbolType = stripTags(self.getCurToken())
                 self.advanceIndex()
                 if not getTokenType(self.getCurToken()) == "identifier":
                     print("Error in compiling parameters list", self.curIndex)
                     return
                 self.appendTokenizedLine(self.getCurToken())  #varName
+                symbolName = stripTags(self.getCurToken())
+                self.symbolsTable.define(symbolName, symbolType, symbolKind)
                 self.advanceIndex()
             elif self.checkMatchForToken(")"):
                 break
@@ -331,6 +365,7 @@ class Compiler:
             print("Error in compile do ", self.curIndex)
             return
         self.appendTokenizedLine(self.getCurToken())  #semicolon
+        self.VMWriter.writePop('temp', 0)
         self.appendBlockTitle(False, "doStatement")
         self.advanceIndex()
         return
@@ -344,12 +379,19 @@ class Compiler:
         self.advanceIndex()
         if not getTokenType(self.getCurToken()) == "identifier":
             print("Error in compile let ", self.curIndex)
+            return
         self.appendTokenizedLine(self.getCurToken())  #varName
+        varName = stripTags(self.getCurToken())
+        isArrayOnLeft = False
         self.advanceIndex()
         if self.checkMatchForToken("["):
             self.appendTokenizedLine(self.getCurToken())  #open square brackets
             self.advanceIndex()
             self.compileExpression()
+            self.VMWriter.writePush(getKindAsSegment(self.symbolsTable.kindOf(varName)),
+                                    self.symbolsTable.indexOf(varName))
+            self.VMWriter.writeArithmetic('add')
+            isArrayOnLeft = True
             if not self.checkMatchForToken("]"):
                 print("Error in compile let ", self.curIndex)
                 return
@@ -361,6 +403,15 @@ class Compiler:
         self.appendTokenizedLine(self.getCurToken())  #equal sign
         self.advanceIndex()
         self.compileExpression()
+        if not isArrayOnLeft:
+            self.VMWriter.writePop(getKindAsSegment(self.symbolsTable.kindOf(varName)),
+                                   self.symbolsTable.indexOf(varName))
+        if isArrayOnLeft:
+            self.VMWriter.writePop('temp', 0)
+            self.VMWriter.writePop('pointer', 1)
+            self.VMWriter.writePush('temp', 0)
+            self.VMWriter.writePop('that', 0)
+
         if not self.checkMatchForToken(";"):
             print("Error in compile let ", self.curIndex)
             return
@@ -371,6 +422,8 @@ class Compiler:
 
     def compileWhile(self):
 
+        self.labelsCounter += 1
+        labelTitle = self.labelsCounter
         self.appendBlockTitle(True, "whileStatement")
         if not self.checkMatchForToken("while"):
             print("Error in compile while", self.curIndex)
@@ -381,12 +434,15 @@ class Compiler:
             print("Error in compile while", self.curIndex)
             return
         self.appendTokenizedLine(self.getCurToken())  #open brackets
+        self.VMWriter.writeLabel('WHILE_EXP' + str(labelTitle))
         self.advanceIndex()
         self.compileExpression()
         if not self.checkMatchForToken(")"):
             print("Error in compile while", self.curIndex)
             return
         self.appendTokenizedLine(self.getCurToken())  #close brackets
+        self.VMWriter.writeArithmetic('not')  #Change to neg?
+        self.VMWriter.writeIf('WHILE_END' + str(labelTitle))
         self.advanceIndex()
         if not self.checkMatchForToken("{"):
             print("Error in compile while", self.curIndex)
@@ -398,6 +454,8 @@ class Compiler:
             print("Error in compile while", self.curIndex)
             return
         self.appendTokenizedLine(self.getCurToken())  #close curly brackets
+        self.VMWriter.writeGoto('WHILE_EXP' + str(labelTitle))
+        self.VMWriter.writeLabel('WHILE_END' + str(labelTitle))
         self.appendBlockTitle(False, "whileStatement")
         self.advanceIndex()
         return
@@ -410,7 +468,10 @@ class Compiler:
         self.appendTokenizedLine(self.getCurToken())  #'return'
         self.advanceIndex()
         if not self.checkMatchForToken(";"):
+            ##TODO add another if condition here for some case
             self.compileExpression()
+        else:
+            self.VMWriter.writePush('constant', 0)  #dummy value
         self.appendTokenizedLine(self.getCurToken())  #semicolon
         self.appendBlockTitle(False, "returnStatement")
         self.advanceIndex()
@@ -421,6 +482,8 @@ class Compiler:
             print("Error in compile if", self.curIndex)
             return
         self.appendBlockTitle(True, "ifStatement")
+        self.labelsCounter += 1
+        labelTitle = self.labelsCounter
         self.appendTokenizedLine(self.getCurToken())  #if
         self.advanceIndex()
         if not self.checkMatchForToken("("):
@@ -433,6 +496,9 @@ class Compiler:
             print("Error in compile if", self.curIndex)
             return
         self.appendTokenizedLine(self.getCurToken())  #close brackets
+        self.VMWriter.writeif('IF_TRUE' + str(labelTitle))
+        self.VMWriter.writeGoto('IF_FALSE' + str(labelTitle))
+        self.VMWriter.writeLabel('IF_TRUE' + str(labelTitle))
         self.advanceIndex()
         if not self.checkMatchForToken("{"):
             print("Error in compile if", self.curIndex)
@@ -446,6 +512,8 @@ class Compiler:
         self.appendTokenizedLine(self.getCurToken())  #close curly brackets
         self.advanceIndex()
         if self.checkMatchForToken("else"):
+            self.VMWriter.writeGoto('END_ELSE' + str(labelTitle))
+            self.VMWriter.writeLabel('IF_FALSE' + str(labelTitle))
             self.appendTokenizedLine(self.getCurToken())  #'else'
             self.advanceIndex()
             if not self.checkMatchForToken("{"):
@@ -459,6 +527,10 @@ class Compiler:
                 return
             self.appendTokenizedLine(self.getCurToken())  #close curly brackets
             self.advanceIndex()
+            self.VMWriter.writeLabel('END_ELSE' + str(labelTitle))
+            self.VMWriter.writeLabel('IF_FALSE' + str(labelTitle))
+        else:
+            self.VMWriter.writeLabel('IF_FALSE' + str(labelTitle))
         self.appendBlockTitle(False, "ifStatement")
         return
 
@@ -466,14 +538,17 @@ class Compiler:
         opTable = ["+", "-", "*", '/', '&amp;', '|', '&lt;', '&gt;', "="]
         self.appendBlockTitle(True, "expression")
         self.compileTerm()
-        if stripTags(self.getCurToken()) in opTable:
-            while True:
-                if stripTags(self.getCurToken()) in opTable:
-                    self.appendTokenizedLine(self.getCurToken())  #op sign
-                    self.advanceIndex()
-                    self.compileTerm()
-                else:
-                    break
+        while stripTags(self.getCurToken()) in opTable:
+            self.appendTokenizedLine(self.getCurToken())  #op sign
+            operator = stripTags(self.getCurToken())
+            opMatch = getWriteOperator(operator)
+            if opMatch in ['Math.multiply', 'Math.divide']:
+                self.VMWriter.writeCall(opMatch, 2)
+            else:
+                self.VMWriter.writeArithmetic(opMatch)
+            self.advanceIndex()
+            self.compileTerm()
+
         self.appendBlockTitle(False, "expression")
         return
 
@@ -484,14 +559,34 @@ class Compiler:
         if getTokenType(self.getCurToken()) == 'integerConstant' \
                 or getTokenType(self.getCurToken()) == 'stringConstant':
             self.appendTokenizedLine(self.getCurToken())  #'constant'
+            if self.getCurToken(self.getCurToken()) == 'integerConstant':
+                intVal = stripTags(self.getCurToken())
+                self.VMWriter.writePush('constant', 0)
+            else:
+                pass
+                #TODO handle string constants
             self.advanceIndex()
+
         elif stripTags(self.getCurToken()) in keywordConstantsTable:
             self.appendTokenizedLine(self.getCurToken())  #keyword constant
+            keyword = stripTags(self.getCurToken())
+            if keyword == 'false' or keyword == 'null':
+                self.VMWriter.writePush('constant', 0)
+            elif keyword == 'true':
+                self.VMWriter.writePush('constant', 1)
+                self.VMWriter.writeArithmetic('neg')
+            elif keyword == 'this':
+                self.VMWriter.writePush('pointer', 0)
             self.advanceIndex()
         elif stripTags(self.getCurToken()) in unaryOpTable:
             self.appendTokenizedLine(self.getCurToken())  #unary op ter,
+            op = stripTags(self.getCurToken())
             self.advanceIndex()
             self.compileTerm()
+            if op == '-':
+                self.VMWriter.writeArithmetic('neg')
+            elif op == '~':
+                self.VMWriter.writeArithmetic('not')
         elif self.checkMatchForToken("("):
             self.appendTokenizedLine(self.getCurToken())  #open brackets
             self.advanceIndex()
@@ -504,55 +599,85 @@ class Compiler:
                 self.compileSubroutineCall(nextToken)
             elif nextToken == '[':
                 self.appendTokenizedLine(self.getCurToken())  #var name
+                varName = self.getCurToken()
                 self.advanceIndex()
                 self.appendTokenizedLine(self.getCurToken())  #open square brackets
                 self.advanceIndex()
                 self.compileExpression()
+                self.VMWriter.writePush(getKindAsSegment(self.symbolsTable.kindOf(varName)),
+                                        self.symbolsTable.indexOf(varName))
+                self.VMWriter.writeArithmetic('add')
+                self.VMWriter.writepop('pointer', 1)
+                self.VMWriter.writePush('that', 0)
                 self.appendTokenizedLine(self.getCurToken())  #close square brackets
                 self.advanceIndex()
             else:
                 self.appendTokenizedLine(self.getCurToken())  #varName solo
+                varName = self.getCurToken()
+                self.VMWriter.writePush(getKindAsSegment(self.symbolsTable.kindOf(varName)),
+                                        self.symbolsTable.indexOf(varName))
                 self.advanceIndex()
         self.appendBlockTitle(False, "term")
         return
 
     def compileExpressionList(self):
+        varCounter = 0
         self.appendBlockTitle(True, "expressionList")
         if self.checkMatchForToken(')'):
             self.appendBlockTitle(False, "expressionList")
             return
-
+        varCounter += 1
         self.compileExpression()
         while True:
             if self.checkMatchForToken(","):
                 self.appendTokenizedLine(self.getCurToken())  #comma
                 self.advanceIndex()
                 self.compileExpression()
+                varCounter += 1
             else:
                 self.appendBlockTitle(False, "expressionList")
-                return
+                return varCounter
         return
 
     def compileSubroutineCall(self, nextToken):
         #No need for appending new scope for subroutine
+        numArgs = 0
         if nextToken == '(':
             self.appendTokenizedLine(self.getCurToken())  #subroutineName
+            subroutineName = stripTags(self.getCurToken())
+            numArgs += 1
             self.advanceIndex()
             self.appendTokenizedLine(self.getCurToken())  #open brackets
             self.advanceIndex()
-            self.compileExpressionList()
+            numArgs = self.compileExpressionList()
+            className = self.className
+            fullCallName = className + '.' + subroutineName
+            self.VMWriter.writeCall(fullCallName, numArgs)
             self.appendTokenizedLine(self.getCurToken())  #close brackets
             self.advanceIndex()
         elif nextToken == '.':
             self.appendTokenizedLine(self.getCurToken())  #classname or varName
+            possibleVarName = stripTags(self.getCurToken())
+            varNameActual = self.symbolsTable.typeOf(possibleVarName)
+            if varNameActual is None:
+                className = possibleVarName
+            else:
+                varName = possibleVarName
+                self.VMWriter.writePush(getKindAsSegment(self.symbolsTable.kindOf(varName)),
+                                        self.symbolsTable.indexOf(varName))
+                numArgs += 1
+                className = self.symbolsTable.typeOf(varName)
             self.advanceIndex()
             self.appendTokenizedLine(self.getCurToken())  #dot
             self.advanceIndex()
-            self.appendTokenizedLine(self.getCurToken())  #subroutineName
+            self.appendTokenizedLine(self.getCurToken())  #subroutineName or method
+            subroutineName = stripTags(self.getCurToken())
             self.advanceIndex()
             self.appendTokenizedLine(self.getCurToken())  #open brackets
             self.advanceIndex()
-            self.compileExpressionList()
+            numArgs += self.compileExpressionList()
+            fullCallName = className + '.' + subroutineName
+            self.VMWriter.writeCall(fullCallName, numArgs)
             self.appendTokenizedLine(self.getCurToken())  #closing brackets
             self.advanceIndex()
         else:
@@ -579,9 +704,9 @@ Writes the array to file
 """
 
 
-def writeVMArrayToFile(VMarray, filenameStr):
+def writeVMArrayToFile(VMArray, filenameStr):
     with open(filenameStr, 'w') as outFile:
-        for line in VMarray:
+        for line in VMArray:
             outFile.write(line)
     return
 
@@ -593,7 +718,7 @@ def main(argv):
             files = [file for file in os.listdir(inputStr) if file.endswith('.jack')]
             for file in files:
                 tokenizedArray = Tokenizer.tokenizeFile(inputStr + '/' + file)
-                compilerEng = Compiler(Compiler.handleTabsArray(tokenizedArray))
+                compilerEng = Compiler(handleTabsArray(tokenizedArray))
                 compilerEng.compileEngine()
                 outputFileName = file.replace(".jack", ".xml")
                 outputStr = inputStr + '/' + outputFileName
@@ -602,7 +727,7 @@ def main(argv):
                 writeVMArrayToFile(compilerEng.VMWriter.VMArray, VMFileStr)
         else:
             tokenizedArray = Tokenizer.tokenizeFile(inputStr)
-            compilerEng = Compiler(Compiler.handleTabsArray(tokenizedArray))
+            compilerEng = Compiler(handleTabsArray(tokenizedArray))
             compilerEng.compileEngine()
             outputFileName = inputStr.replace(".jack", ".xml")
             writeArrayToFile(compilerEng.compiledArray, outputFileName, False)

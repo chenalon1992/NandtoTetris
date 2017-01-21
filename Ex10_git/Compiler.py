@@ -505,7 +505,7 @@ class Compiler:
             self.appendTokenizedLine(self.getCurToken())  #open brackets
             self.advanceIndex()
             self.compileExpressionList()
-            self.appendTokenizedLine(')')  #close brackets
+            self.appendTokenizedLine(self.getCurToken())  #close brackets
             self.advanceIndex()
         elif nextToken == '.':
             self.appendTokenizedLine(self.getCurToken())  #classname or varName

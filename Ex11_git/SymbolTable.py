@@ -33,7 +33,10 @@ class SymbolsTable:
 
     """Looks for the matching name in all tables and returns it's kind"""
     def kindOf(self, name):
-        return self.getMatchingST_byName(name)
+        matchingTable = self.getMatchingST_byName(name)
+        for nameOf, typeOf, kind in matchingTable:
+            if name == nameOf:
+                return kind
 
     """Returns type of name in matching table"""
     def typeOf(self, name):
@@ -52,7 +55,7 @@ class SymbolsTable:
             return None
         for nameOf, typeOf, kind in matchingTable:
             if name == nameOf:
-                return (nameOf, typeOf, kind).index()
+                return matchingTable.index((nameOf, typeOf, kind))
         return None
 
     """Erases the subroutine tables"""
@@ -85,6 +88,6 @@ class SymbolsTable:
                 return self.symbolsTableVar
         for nameOf, typeOf, kind in self.symbolsTableArg:
             if name == nameOf:
-                return self.symbolsTableVar
+                return self.symbolsTableArg
         return None
 

@@ -221,7 +221,7 @@ class Compiler:
             self.appendTokenizedLine(self.getCurToken())  #semicolon
             self.appendBlockTitle(False, blockTitle)
             self.advanceIndex()
-            return
+            return localsCounter
         while True:
             if self.checkMatchForToken(","):
                 self.appendTokenizedLine(self.getCurToken())  #comma
@@ -258,11 +258,11 @@ class Compiler:
             print("Error in compile subroutine", self.curIndex)
             return
         self.appendTokenizedLine(self.getCurToken())  # subroutineName
-        subroutineName = self.className + stripTags(self.getCurToken())
+        subroutineName = self.className + '.' + stripTags(self.getCurToken())
         self.advanceIndex()
         self.appendTokenizedLine(self.getCurToken())  # open brackets
         self.advanceIndex()
-        self.compileParameterList(subroutineType)
+        self.compileParameterList()
         self.appendTokenizedLine(self.getCurToken())  # closing brackets
         self.advanceIndex()
         self.compileSubroutineBody(subroutineName, subroutineType)
@@ -295,7 +295,7 @@ class Compiler:
         self.advanceIndex()
         return
 
-    def compileParameterList(self, subroutineType):
+    def compileParameterList(self):
         self.appendBlockTitle(True, "parameterList")
         if self.checkMatchForToken(')'):
             self.appendBlockTitle(False, "parameterList")
@@ -496,7 +496,7 @@ class Compiler:
             print("Error in compile if", self.curIndex)
             return
         self.appendTokenizedLine(self.getCurToken())  #close brackets
-        self.VMWriter.writeif('IF_TRUE' + str(labelTitle))
+        self.VMWriter.writeIf('IF_TRUE' + str(labelTitle))
         self.VMWriter.writeGoto('IF_FALSE' + str(labelTitle))
         self.VMWriter.writeLabel('IF_TRUE' + str(labelTitle))
         self.advanceIndex()
@@ -559,7 +559,7 @@ class Compiler:
         if getTokenType(self.getCurToken()) == 'integerConstant' \
                 or getTokenType(self.getCurToken()) == 'stringConstant':
             self.appendTokenizedLine(self.getCurToken())  #'constant'
-            if self.getCurToken(self.getCurToken()) == 'integerConstant':
+            if getTokenType(self.getCurToken()) == 'integerConstant':
                 intVal = stripTags(self.getCurToken())
                 self.VMWriter.writePush('constant', 0)
             else:
@@ -599,7 +599,7 @@ class Compiler:
                 self.compileSubroutineCall(nextToken)
             elif nextToken == '[':
                 self.appendTokenizedLine(self.getCurToken())  #var name
-                varName = self.getCurToken()
+                varName = stripTags(self.getCurToken())
                 self.advanceIndex()
                 self.appendTokenizedLine(self.getCurToken())  #open square brackets
                 self.advanceIndex()
@@ -613,7 +613,7 @@ class Compiler:
                 self.advanceIndex()
             else:
                 self.appendTokenizedLine(self.getCurToken())  #varName solo
-                varName = self.getCurToken()
+                varName = stripTags(self.getCurToken())
                 self.VMWriter.writePush(getKindAsSegment(self.symbolsTable.kindOf(varName)),
                                         self.symbolsTable.indexOf(varName))
                 self.advanceIndex()
@@ -625,7 +625,7 @@ class Compiler:
         self.appendBlockTitle(True, "expressionList")
         if self.checkMatchForToken(')'):
             self.appendBlockTitle(False, "expressionList")
-            return
+            return varCounter
         varCounter += 1
         self.compileExpression()
         while True:

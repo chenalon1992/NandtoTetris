@@ -130,14 +130,14 @@ class Compiler:
 
     def compileClass(self):
         self.appendBlockTitle(True, "class")
+        self.appendTokenizedLine(self.getCurToken())  #'class'
+        self.advanceIndex()  #'className'
         self.appendTokenizedLine(self.getCurToken())
-        self.advanceIndex()
-        self.appendTokenizedLine(self.getCurToken())
-        self.advanceIndex()
+        self.advanceIndex()  #'open curly brackets'
         if not self.checkMatchForToken("{"):
             print("Error", self.curIndex)
         self.appendTokenizedLine(self.getCurToken())
-        self.advanceIndex()
+        self.advanceIndex()  #classVarDec or subRoutineDec
         while True:
             curToken = stripTags(self.getCurToken())
             if curToken == 'static' or curToken == 'field':
@@ -145,12 +145,11 @@ class Compiler:
             elif curToken == 'constructor' or curToken == 'function' or curToken == 'method':
                 self.compileSubroutine()
             elif self.checkMatchForToken("}"):
-                self.appendTokenizedLine(self.tokenizedArray[self.curIndex])
+                self.appendTokenizedLine(self.getCurToken())
                 self.appendBlockTitle(False, "class")
-                self.advanceIndex()
                 return
             else:
-                print("Error", self.curIndex)
+                print("Error in compiling class", self.curIndex)
                 return
         return
 
@@ -160,45 +159,49 @@ class Compiler:
         else:
             blockTitle = "varDec"
         self.appendBlockTitle(True, blockTitle)
-        self.appendTokenizedLine(self.getCurToken())
+        self.appendTokenizedLine(self.getCurToken())   #static or field (identifier)
         self.advanceIndex()
-        self.appendTokenizedLine(self.getCurToken())
+        self.appendTokenizedLine(self.getCurToken())  #type (identifier)
         self.advanceIndex()
         if not getTokenType(self.tokenizedArray[self.curIndex]) == "identifier":
-            print("Error", self.curIndex)
-        self.appendTokenizedLine(self.getCurToken())
+            print("Error in classVarDec", self.curIndex)
+        self.appendTokenizedLine(self.getCurToken())  #varName (identifier)
         self.advanceIndex()
         while True:
             if self.checkMatchForToken(","):
-                self.appendTokenizedLine(self.getCurToken())
+                self.appendTokenizedLine(self.getCurToken())  #comma
                 self.advanceIndex()
                 if not getTokenType(self.getCurToken()) == "identifier":
-                    print("Error", self.curIndex)
+                    print("Error in classVarDec", self.curIndex)
                     return
-                self.appendTokenizedLine(self.getCurToken())
+                self.appendTokenizedLine(self.getCurToken())  #varName
                 self.advanceIndex()
             elif self.checkMatchForToken(";"):
-                self.appendTokenizedLine(self.getCurToken())
+                self.appendTokenizedLine(self.getCurToken())  #semicolon
                 self.appendBlockTitle(False, blockTitle)
                 self.advanceIndex()
                 return
             else:
-                print("Error", self.curIndex)
+                print("Error in classVarDec", self.curIndex)
                 return
 
         return
 
     def compileSubroutine(self):
         self.appendBlockTitle(True, "subroutineDec")
-        self.appendTokenizedLine(self.getCurToken())
+        self.appendTokenizedLine(self.getCurToken())  #const func method
         self.advanceIndex()
-        self.appendTokenizedLine(self.getCurToken())
+        self.appendTokenizedLine(self.getCurToken())  #void or type
         self.advanceIndex()
         if not getTokenType(self.getCurToken()) == "identifier":
             print("Error", self.curIndex)
-        self.appendTokenizedLine(self.getCurToken())
+        self.appendTokenizedLine(self.getCurToken())  #subroutineName
+        self.advanceIndex()
+        self.appendTokenizedLine(self.getCurToken())  #open brackets
         self.advanceIndex()
         self.compileParameterList()
+        self.appendTokenizedLine(self.getCurToken())  # closing brackets
+        self.advanceIndex()
         self.compileSubroutineBody()
         self.appendBlockTitle(False, "subroutineDec")
         return
@@ -206,8 +209,8 @@ class Compiler:
     def compileSubroutineBody(self):
         self.appendBlockTitle(True, "subroutineBody")
         if not self.checkMatchForToken("{"):
-            print("Error", self.curIndex)
-        self.appendTokenizedLine(self.getCurToken())
+            print("Error in compile subroutineBody", self.curIndex)
+        self.appendTokenizedLine(self.getCurToken())  #open curly brackets
         self.advanceIndex()
         if self.checkMatchForToken("var"):
             while True:
@@ -217,44 +220,38 @@ class Compiler:
                     break
         self.compileStatements()
         if not self.checkMatchForToken("}"):
-            print("Error", self.curIndex)
-        self.appendTokenizedLine(self.getCurToken())
+            print("Error in compile subroutineBody", self.curIndex)
+        self.appendTokenizedLine(self.getCurToken())  #Closing curly brackets
         self.appendBlockTitle(False, "subroutineBody")
         self.advanceIndex()
         return
 
     def compileParameterList(self):
-        if not self.checkMatchForToken("("):
-            print("Error", self.curIndex)
-        self.appendTokenizedLine(self.getCurToken())
         self.appendBlockTitle(True, "parameterList")
-        self.advanceIndex()
-        if getTokenType(self.getCurToken()) == "keyword":
-            self.appendTokenizedLine(self.getCurToken())
-            self.advanceIndex()
-            if not getTokenType(self.getCurToken()) == "identifier":
-                print("Error", self.curIndex)
-            self.appendTokenizedLine(self.getCurToken())
-            self.advanceIndex()
-            while True:
-                if self.checkMatchForToken(","):
-                    self.appendTokenizedLine(self.getCurToken())
-                    self.advanceIndex()
-                    if not getTokenType(self.getCurToken()) == "keyword":
-                        print("Error", self.curIndex)
-                    self.appendTokenizedLine(self.getCurToken())
-                    self.advanceIndex()
-                    if not getTokenType(self.getCurToken()) == "identifier":
-                        print("Error", self.curIndex)
-                    self.appendTokenizedLine(self.getCurToken())
-                    self.advanceIndex()
-                elif self.checkMatchForToken(")"):
-                    break
-        if self.checkMatchForToken(")"):
+        if self.checkMatchForToken(')'):
             self.appendBlockTitle(False, "parameterList")
-            self.appendTokenizedLine(self.getCurToken())
-            self.advanceIndex()
             return
+        self.appendTokenizedLine(self.getCurToken())  #type, parameter list not empty
+        self.advanceIndex()
+        if not getTokenType(self.getCurToken()) == "identifier":
+            print("Error in compiling parameters list", self.curIndex)
+        self.appendTokenizedLine(self.getCurToken())  #varName
+        self.advanceIndex()
+        while True:
+            if self.checkMatchForToken(","):
+                self.appendTokenizedLine(self.getCurToken())  #comma
+                self.advanceIndex()
+                if not getTokenType(self.getCurToken()) == "keyword":
+                    print("Error in compiling parameters list", self.curIndex)
+                self.appendTokenizedLine(self.getCurToken())  #type
+                self.advanceIndex()
+                if not getTokenType(self.getCurToken()) == "identifier":
+                    print("Error in compiling parameters list", self.curIndex)
+                self.appendTokenizedLine(self.getCurToken())  #varName
+                self.advanceIndex()
+            elif self.checkMatchForToken(")"):
+                break
+        self.appendBlockTitle(False, "parameterList")
         return
 
     def compileStatements(self):
@@ -283,57 +280,50 @@ class Compiler:
 
     def compileDo(self):
         self.appendBlockTitle(True, "doStatement")
-        self.appendTokenizedLine(self.getCurToken())
+        if not self.checkMatchForToken('do'):
+            print("Error in compile do ", self.curIndex)
+            return
+        self.appendTokenizedLine(self.getCurToken())  #'do'
         self.advanceIndex()
         self.compileSubroutineCall()
-        if self.checkMatchForToken(")"):
-            self.advanceIndex()
-            self.appendTokenizedLine(self.getCurToken())
-            self.advanceIndex()
-            self.appendBlockTitle(False, "doStatement")
-            return
-        if checkIfTokenInArray(stripTags(self.getCurToken())):
-            self.appendBlockTitle(False, "doStatement")
-            return
-
         if not self.checkMatchForToken(";"):
-            print("Error", self.curIndex)
-        self.appendTokenizedLine(self.getCurToken())
+            print("Error in compile do ", self.curIndex)
+            return
+        self.appendTokenizedLine(self.getCurToken())  #semicolon
         self.appendBlockTitle(False, "doStatement")
         self.advanceIndex()
         return
 
     def compileLet(self):
         self.appendBlockTitle(True, "letStatement")
-        self.appendTokenizedLine(self.getCurToken())
+        if not self.checkMatchForToken('let'):
+            print("Error in compile let ", self.curIndex)
+            return
+        self.appendTokenizedLine(self.getCurToken())  #let
         self.advanceIndex()
         if not getTokenType(self.getCurToken()) == "identifier":
-            print("Error", self.curIndex)
-        self.appendTokenizedLine(self.getCurToken())
+            print("Error in compile let ", self.curIndex)
+        self.appendTokenizedLine(self.getCurToken())  #varName
         self.advanceIndex()
         if self.checkMatchForToken("["):
-            self.appendTokenizedLine(self.getCurToken())
+            self.appendTokenizedLine(self.getCurToken())  #open square brackets
             self.advanceIndex()
             self.compileExpression()
             if not self.checkMatchForToken("]"):
-                print("Error", self.curIndex)
-            self.appendTokenizedLine(self.getCurToken())
+                print("Error in compile let ", self.curIndex)
+                return
+            self.appendTokenizedLine(self.getCurToken())  #close square brackets
             self.advanceIndex()
         if not self.checkMatchForToken("="):
-            print("Error", self.curIndex)
-        self.appendTokenizedLine(self.getCurToken())
+            print("Error in compile let ", self.curIndex)
+            return
+        self.appendTokenizedLine(self.getCurToken())  #equal sign
         self.advanceIndex()
         self.compileExpression()
-        if self.checkMatchForToken(';'):
-            self.appendTokenizedLine(self.getCurToken())
-            self.appendBlockTitle(False, "letStatement")
-            self.advanceIndex()
+        if not self.checkMatchForToken(";"):
+            print("Error in compile let ", self.curIndex)
             return
-        self.advanceIndex()
-        self.appendTokenizedLine(self.getCurToken())
-        if checkIfTokenInArray(stripTags(self.getCurToken())):
-            self.appendBlockTitle(False, "letStatement")
-            return
+        self.appendTokenizedLine(self.getCurToken())  #semicolon
         self.appendBlockTitle(False, "letStatement")
         self.advanceIndex()
         return
@@ -341,83 +331,92 @@ class Compiler:
     def compileWhile(self):
 
         self.appendBlockTitle(True, "whileStatement")
-        self.appendTokenizedLine(self.getCurToken())
+        if not self.checkMatchForToken("while"):
+            print("Error in compile while", self.curIndex)
+            return
+        self.appendTokenizedLine(self.getCurToken())  #'while'
         self.advanceIndex()
         if not self.checkMatchForToken("("):
-            print("Error", self.curIndex)
-        self.appendTokenizedLine(self.getCurToken())
+            print("Error in compile while", self.curIndex)
+            return
+        self.appendTokenizedLine(self.getCurToken())  #open brackets
         self.advanceIndex()
         self.compileExpression()
-        open_brackets_flag = False
         if not self.checkMatchForToken(")"):
-            if self.checkMatchForToken("{"):
-                if stripTags(self.tokenizedArray[self.curIndex - 1]) == ')':
-                    self.appendTokenizedLine(self.tokenizedArray[self.curIndex - 1])
-                self.appendTokenizedLine(self.getCurToken())
-                open_brackets_flag = True
-            else:
-                print("Error", self.curIndex)
-        else:
-            self.appendTokenizedLine(self.getCurToken())
-            self.advanceIndex()
-
+            print("Error in compile while", self.curIndex)
+            return
+        self.appendTokenizedLine(self.getCurToken())  #close brackets
+        self.advanceIndex()
         if not self.checkMatchForToken("{"):
-            print("Error", self.curIndex)
-        if not open_brackets_flag:
-            self.appendTokenizedLine(self.getCurToken())
+            print("Error in compile while", self.curIndex)
+            return
+        self.appendTokenizedLine(self.getCurToken())  #open curly brackets
         self.advanceIndex()
         self.compileStatements()
         if not self.checkMatchForToken("}"):
-            print("Error", self.curIndex)
-        self.appendTokenizedLine(self.getCurToken())
+            print("Error in compile while", self.curIndex)
+            return
+        self.appendTokenizedLine(self.getCurToken())  #close curly brackets
         self.appendBlockTitle(False, "whileStatement")
         self.advanceIndex()
         return
 
     def compileReturn(self):
         self.appendBlockTitle(True, "returnStatement")
-        self.appendTokenizedLine(self.getCurToken())
+        if not self.checkMatchForToken("return"):
+            print("Error in compile return", self.curIndex)
+            return
+        self.appendTokenizedLine(self.getCurToken())  #'return'
         self.advanceIndex()
         if not self.checkMatchForToken(";"):
             self.compileExpression()
-        self.appendTokenizedLine(self.getCurToken())
+        self.appendTokenizedLine(self.getCurToken())  #semicolon
         self.appendBlockTitle(False, "returnStatement")
         self.advanceIndex()
         return
 
     def compileIf(self):
+        if not self.checkMatchForToken("if"):
+            print("Error in compile if", self.curIndex)
+            return
         self.appendBlockTitle(True, "ifStatement")
-        self.appendTokenizedLine(self.getCurToken())
+        self.appendTokenizedLine(self.getCurToken())  #if
         self.advanceIndex()
         if not self.checkMatchForToken("("):
-            print("Error", self.curIndex)
-        self.appendTokenizedLine(self.getCurToken())
+            print("Error in compile if", self.curIndex)
+            return
+        self.appendTokenizedLine(self.getCurToken())  #open brackets
         self.advanceIndex()
         self.compileExpression()
         if not self.checkMatchForToken(")"):
-            print("Error", self.curIndex)
-        self.appendTokenizedLine(self.getCurToken())
+            print("Error in compile if", self.curIndex)
+            return
+        self.appendTokenizedLine(self.getCurToken())  #close brackets
         self.advanceIndex()
         if not self.checkMatchForToken("{"):
-            print("Error", self.curIndex)
-        self.appendTokenizedLine(self.getCurToken())
+            print("Error in compile if", self.curIndex)
+            return
+        self.appendTokenizedLine(self.getCurToken())  #open curly brackets
         self.advanceIndex()
         self.compileStatements()
         if not self.checkMatchForToken("}"):
-            print("Error", self.curIndex)
-        self.appendTokenizedLine(self.getCurToken())
+            print("Error in compile if", self.curIndex)
+            return
+        self.appendTokenizedLine(self.getCurToken())  #close curly brackets
         self.advanceIndex()
         if self.checkMatchForToken("else"):
-            self.appendTokenizedLine(self.getCurToken())
+            self.appendTokenizedLine(self.getCurToken())  #'else'
             self.advanceIndex()
             if not self.checkMatchForToken("{"):
-                print("Error", self.curIndex)
-            self.appendTokenizedLine(self.getCurToken())
+                print("Error in compile if", self.curIndex)
+                return
+            self.appendTokenizedLine(self.getCurToken())  #open curly brackets
             self.advanceIndex()
             self.compileStatements()
             if not self.checkMatchForToken("}"):
-                print("Error", self.curIndex)
-            self.appendTokenizedLine(self.getCurToken())
+                print("Error in compile if", self.curIndex)
+                return
+            self.appendTokenizedLine(self.getCurToken())  #close curly brackets
             self.advanceIndex()
         self.appendBlockTitle(False, "ifStatement")
         return
@@ -429,7 +428,7 @@ class Compiler:
         if stripTags(self.getCurToken()) in opTable:
             while True:
                 if stripTags(self.getCurToken()) in opTable:
-                    self.appendTokenizedLine(self.getCurToken())
+                    self.appendTokenizedLine(self.getCurToken())  #op sign
                     self.advanceIndex()
                     self.compileTerm()
                 else:
@@ -443,81 +442,78 @@ class Compiler:
         self.appendBlockTitle(True, "term")
         if getTokenType(self.getCurToken()) == 'integerConstant' \
                 or getTokenType(self.getCurToken()) == 'stringConstant':
-            self.appendTokenizedLine(self.getCurToken())
+            self.appendTokenizedLine(self.getCurToken())  #'constant'
+            self.advanceIndex()
         elif stripTags(self.getCurToken()) in keywordConstantsTable:
-            self.appendTokenizedLine(self.getCurToken())
+            self.appendTokenizedLine(self.getCurToken())  #keyword constant
+            self.advanceIndex()
         elif stripTags(self.getCurToken()) in unaryOpTable:
-            self.appendTokenizedLine(self.getCurToken())
+            self.appendTokenizedLine(self.getCurToken())  #unary op ter,
             self.advanceIndex()
             self.compileTerm()
+            self.advanceIndex()
         elif self.checkMatchForToken("("):
-            self.appendTokenizedLine(self.getCurToken())
+            self.appendTokenizedLine(self.getCurToken())  #open brackets
             self.advanceIndex()
             self.compileExpression()
-            if self.checkMatchForToken(";"):
-                self.appendTokenizedLine(self.tokenizedArray[self.curIndex - 1])
-            else:
-                self.appendTokenizedLine(self.getCurToken())
+            self.appendTokenizedLine(self.getCurToken())  #close brackets
+            self.advanceIndex()
         elif getTokenType(self.getCurToken()) == "identifier":
-            self.compileSubroutineCall()
-            self.appendBlockTitle(False, "term")
-            return
+            nextToken = self.peekNextToken()
+            if nextToken == '.' or nextToken == '(':
+                self.compileSubroutineCall(nextToken)
+            elif nextToken == '[':
+                self.appendTokenizedLine(self.getCurToken())  #var name
+                self.advanceIndex()
+                self.appendTokenizedLine(self.getCurToken())  #open square brackets
+                self.advanceIndex()
+                self.compileExpression()
+                self.appendTokenizedLine(self.getCurToken())  #close square brackets
+                self.advanceIndex()
+            else:
+                self.appendTokenizedLine(self.getCurToken())  #varName solo
+                self.advanceIndex()
         self.appendBlockTitle(False, "term")
-        if self.checkMatchForToken(";"):
-            return
-        self.advanceIndex()  # One advance too many with token
         return
 
     def compileExpressionList(self):
-        if not self.checkMatchForToken("("):
-            print("Error", self.curIndex)
-        self.appendTokenizedLine(self.getCurToken())
         self.appendBlockTitle(True, "expressionList")
-        self.advanceIndex()
         if self.checkMatchForToken(')'):
             self.appendBlockTitle(False, "expressionList")
-            self.appendTokenizedLine(self.getCurToken())
-            self.advanceIndex()
             return
+
         self.compileExpression()
         while True:
             if self.checkMatchForToken(","):
-                self.appendTokenizedLine(self.getCurToken())
+                self.appendTokenizedLine(self.getCurToken())  #comma
                 self.advanceIndex()
                 self.compileExpression()
             else:
                 self.appendBlockTitle(False, "expressionList")
-                self.appendTokenizedLine(self.getCurToken())
                 return
         return
 
-    def compileSubroutineCall(self):
-        nextToken = self.peekNextToken()
+    def compileSubroutineCall(self, nextToken):
+        #No need for appending new scope for subroutine
         if nextToken == '(':
-            self.appendTokenizedLine(self.getCurToken())
+            self.appendTokenizedLine(self.getCurToken())  #subroutineName
             self.advanceIndex()
+            self.appendTokenizedLine(self.getCurToken())  #open brackets
             self.compileExpressionList()
-        elif nextToken == '[':
-            self.appendTokenizedLine(self.getCurToken())
-            self.advanceIndex()
-            self.appendTokenizedLine(self.getCurToken())
-            self.advanceIndex()
-            self.compileExpression()
-            if not self.checkMatchForToken("]"):
-                print("Error", self.curIndex)
-            self.appendTokenizedLine(self.getCurToken())
+            self.appendTokenizedLine(')')  #close brackets
             self.advanceIndex()
         elif nextToken == '.':
-            self.appendTokenizedLine(self.getCurToken())
+            self.appendTokenizedLine(self.getCurToken())  #classname or varName
             self.advanceIndex()
-            # Now we're on the . token
-            self.appendTokenizedLine(self.getCurToken())
+            self.appendTokenizedLine(self.getCurToken())  #dot
             self.advanceIndex()
-            self.appendTokenizedLine(self.getCurToken())
+            self.appendTokenizedLine(self.getCurToken())  #subroutineName
             self.advanceIndex()
             self.compileExpressionList()
-        else:
-            self.appendTokenizedLine(self.getCurToken())
+            self.appendTokenizedLine(self.getCurToken())  #closing brackets
             self.advanceIndex()
+        else:
+            print("Error in compile subroutineCall", self.curIndex)
             return
+
         return

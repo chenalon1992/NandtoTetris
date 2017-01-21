@@ -110,6 +110,29 @@ def intVal(intValue):
 
 
 """
+Removes comments from string excluding comments within string
+"""
+
+
+def remove_comments(string):
+    pattern = r"(\".*?\"|\'.*?\')|(/\*.*?\*/|//[^\r\n]*$)"
+    # first group captures quoted strings (double or single)
+    # second group captures comments (//single-line or /* multi-line */)
+    regex = re.compile(pattern, re.MULTILINE | re.DOTALL)
+
+    def _replacer(match):
+        # if the 2nd group (capturing comments) is not None,
+        # it means we have captured a non-quoted (real) comment string.
+        if match.group(2) is not None:
+            return ""  # so we will return empty to remove the comment
+        else:  # otherwise, we will return the 1st group
+            return match.group(1)  # captured quoted-string
+
+    return regex.sub(_replacer, string)
+
+
+
+"""
 Compile a whole file, parses all token
 and classify them respectively
 """
@@ -121,7 +144,8 @@ def tokenizeFile(fileStr):
 
         tokens = curFile.read()
         # Remove all kinds of comments with this pattern
-        tokens = re.sub(r'//.*\n|/\*\*.*\n|^\s*\*.*\n|\n|/\*.*\n', "", tokens, flags=re.MULTILINE)
+        #tokens = re.sub(r'//.*\n|/\*\*.*\n|^\s*\*.*\n|\n|/\*.*\n', "", tokens, flags=re.MULTILINE)
+        tokens = remove_comments(tokens)
 
         # Split by non words combinations
         tokens = re.split('(\W)', tokens)
@@ -194,12 +218,19 @@ def main(argv):
                 # writeArrayToFile(tokenizedArray, outputFileName, True)
                 writeArrayToFile(compilerObj.compiledArray, outputStr, False)
         else:
+            #####TO REMOVE###
+            currentDir = "/home/tomer/Dropbox/NandToTetris/Git_nand/Junk"
+            inputStrTemp = inputStr[inputStr.rindex('/'):]
+            inputStrTemp = currentDir + inputStrTemp
+            inputStrTemp = inputStrTemp.replace(".jack", "1.xml")
+            #### TO REMOVE ABOVE ####
             tokenizedArray = tokenizeFile(inputStr)
             compilerObj = Compiler.Compiler(Compiler.handleTabsArray(tokenizedArray))
             compilerObj.compileEngine()
-            outputFileName = inputStr.replace(".jack", ".xml")
+
+            outputFileName = inputStr.replace(".jack", "1.xml")
             # writeArrayToFile(tokenizedArray, outputFileName, True)
-            writeArrayToFile(compilerObj.compiledArray, outputFileName, False)
+            writeArrayToFile(compilerObj.compiledArray, inputStrTemp, False)
     except TypeError:
         print("I Love Nand")
 

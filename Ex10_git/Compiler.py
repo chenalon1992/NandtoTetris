@@ -247,12 +247,11 @@ class Compiler:
             if self.checkMatchForToken(","):
                 self.appendTokenizedLine(self.getCurToken())  #comma
                 self.advanceIndex()
-                if not getTokenType(self.getCurToken()) == "keyword":
-                    print("Error in compiling parameters list", self.curIndex)
                 self.appendTokenizedLine(self.getCurToken())  #type
                 self.advanceIndex()
                 if not getTokenType(self.getCurToken()) == "identifier":
                     print("Error in compiling parameters list", self.curIndex)
+                    return
                 self.appendTokenizedLine(self.getCurToken())  #varName
                 self.advanceIndex()
             elif self.checkMatchForToken(")"):
@@ -504,6 +503,7 @@ class Compiler:
             self.appendTokenizedLine(self.getCurToken())  #subroutineName
             self.advanceIndex()
             self.appendTokenizedLine(self.getCurToken())  #open brackets
+            self.advanceIndex()
             self.compileExpressionList()
             self.appendTokenizedLine(')')  #close brackets
             self.advanceIndex()

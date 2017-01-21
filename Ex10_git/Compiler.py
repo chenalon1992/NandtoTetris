@@ -131,12 +131,13 @@ class Compiler:
     def compileClass(self):
         self.appendBlockTitle(True, "class")
         self.appendTokenizedLine(self.getCurToken())  #'class'
-        self.advanceIndex()  #'className'
-        self.appendTokenizedLine(self.getCurToken())
-        self.advanceIndex()  #'open curly brackets'
+        self.advanceIndex()
+        self.appendTokenizedLine(self.getCurToken())  #'className'
+        self.advanceIndex()
         if not self.checkMatchForToken("{"):
-            print("Error", self.curIndex)
-        self.appendTokenizedLine(self.getCurToken())
+            print("Error in compile class", self.curIndex)
+            return
+        self.appendTokenizedLine(self.getCurToken())  #'open curly brackets'
         self.advanceIndex()  #classVarDec or subRoutineDec
         while True:
             curToken = stripTags(self.getCurToken())
@@ -145,8 +146,9 @@ class Compiler:
             elif curToken == 'constructor' or curToken == 'function' or curToken == 'method':
                 self.compileSubroutine()
             elif self.checkMatchForToken("}"):
-                self.appendTokenizedLine(self.getCurToken())
+                self.appendTokenizedLine(self.getCurToken())  #close curly brackets
                 self.appendBlockTitle(False, "class")
+                self.advanceIndex()
                 return
             else:
                 print("Error in compiling class", self.curIndex)
@@ -161,12 +163,15 @@ class Compiler:
         self.appendBlockTitle(True, blockTitle)
         self.appendTokenizedLine(self.getCurToken())   #static or field (identifier)
         self.advanceIndex()
-        self.appendTokenizedLine(self.getCurToken())  #type (identifier)
+        self.appendTokenizedLine(self.getCurToken())  #type (identifier) or keyword
         self.advanceIndex()
-        if not getTokenType(self.tokenizedArray[self.curIndex]) == "identifier":
-            print("Error in classVarDec", self.curIndex)
         self.appendTokenizedLine(self.getCurToken())  #varName (identifier)
         self.advanceIndex()
+        if self.checkMatchForToken(';'):
+            self.appendTokenizedLine(self.getCurToken())  #semicolon
+            self.appendBlockTitle(False, blockTitle)
+            self.advanceIndex()
+            return
         while True:
             if self.checkMatchForToken(","):
                 self.appendTokenizedLine(self.getCurToken())  #comma
@@ -194,7 +199,8 @@ class Compiler:
         self.appendTokenizedLine(self.getCurToken())  #void or type
         self.advanceIndex()
         if not getTokenType(self.getCurToken()) == "identifier":
-            print("Error", self.curIndex)
+            print("Error in compile subroutine", self.curIndex)
+            return
         self.appendTokenizedLine(self.getCurToken())  #subroutineName
         self.advanceIndex()
         self.appendTokenizedLine(self.getCurToken())  #open brackets
@@ -285,7 +291,7 @@ class Compiler:
             return
         self.appendTokenizedLine(self.getCurToken())  #'do'
         self.advanceIndex()
-        self.compileSubroutineCall()
+        self.compileSubroutineCall(self.peekNextToken())
         if not self.checkMatchForToken(";"):
             print("Error in compile do ", self.curIndex)
             return
@@ -451,7 +457,6 @@ class Compiler:
             self.appendTokenizedLine(self.getCurToken())  #unary op ter,
             self.advanceIndex()
             self.compileTerm()
-            self.advanceIndex()
         elif self.checkMatchForToken("("):
             self.appendTokenizedLine(self.getCurToken())  #open brackets
             self.advanceIndex()
@@ -508,6 +513,8 @@ class Compiler:
             self.appendTokenizedLine(self.getCurToken())  #dot
             self.advanceIndex()
             self.appendTokenizedLine(self.getCurToken())  #subroutineName
+            self.advanceIndex()
+            self.appendTokenizedLine(self.getCurToken())  #open brackets
             self.advanceIndex()
             self.compileExpressionList()
             self.appendTokenizedLine(self.getCurToken())  #closing brackets

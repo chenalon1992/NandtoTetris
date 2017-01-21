@@ -48,7 +48,7 @@ def tokenType(token):
         return SYMBOL
     if isIntVal(token):
         return INT_CONST
-    matchObj = re.match(r'[A-Za-z]+\w*', token)
+    matchObj = re.match(r'[A-Za-z_]+\w*', token)
     if matchObj:
         return IDENTIFIER
     else:

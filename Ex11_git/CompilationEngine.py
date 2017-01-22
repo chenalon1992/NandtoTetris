@@ -533,7 +533,6 @@ class Compiler:
             self.appendTokenizedLine(self.getCurToken())  #close curly brackets
             self.advanceIndex()
             self.VMWriter.writeLabel('END_ELSE' + str(labelTitle))
-            self.VMWriter.writeLabel('IF_FALSE' + str(labelTitle))
         else:
             self.VMWriter.writeLabel('IF_FALSE' + str(labelTitle))
         self.appendBlockTitle(False, "ifStatement")
@@ -740,7 +739,7 @@ def main(argv):
                 outputFileName = file.replace(".jack", ".xml")
                 outputStr = inputStr + '/' + outputFileName
                 writeArrayToFile(compilerEng.compiledArray, outputStr, False)
-                VMFileStr = inputStr + '/' + file.replace(".jack", "1.vm")
+                VMFileStr = inputStr + '/' + file.replace(".jack", ".vm")
                 writeVMArrayToFile(compilerEng.VMWriter.VMArray, VMFileStr)
         else:
             tokenizedArray = Tokenizer.tokenizeFile(inputStr)
@@ -748,7 +747,7 @@ def main(argv):
             compilerEng.compileEngine()
             outputFileName = inputStr.replace(".jack", ".xml")
             writeArrayToFile(compilerEng.compiledArray, outputFileName, False)
-            VMFileStr = inputStr.replace(".jack", "1.vm")
+            VMFileStr = inputStr.replace(".jack", ".vm")
             writeVMArrayToFile(compilerEng.VMWriter.VMArray, VMFileStr)
     except TypeError:
         print("I Love Nand")

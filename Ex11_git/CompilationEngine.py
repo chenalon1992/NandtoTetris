@@ -546,13 +546,15 @@ class Compiler:
         while stripTags(self.getCurToken()) in opTable:
             self.appendTokenizedLine(self.getCurToken())  #op sign
             operator = stripTags(self.getCurToken())
+            self.advanceIndex()
+            self.compileTerm()
             opMatch = getWriteOperator(operator)
             if opMatch in ['Math.multiply', 'Math.divide']:
                 self.VMWriter.writeCall(opMatch, 2)
             else:
                 self.VMWriter.writeArithmetic(opMatch)
-            self.advanceIndex()
-            self.compileTerm()
+
+
 
         self.appendBlockTitle(False, "expression")
         return

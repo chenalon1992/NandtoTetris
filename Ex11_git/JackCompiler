@@ -1,0 +1,2 @@
+#!/bin/sh
+python CompilationEngine.py $1

@@ -281,7 +281,8 @@ class Compiler:
             numOfLocals += self.compileVarDec(False)
         self.VMWriter.writeFunction(subroutineName, numOfLocals)
         if subroutineType == 'constructor':
-            self.VMWriter.writePush('constant', len(self.symbolsTable.symbolsTableField))
+            sizeToAlloc = len(self.symbolsTable.symbolsTableField)
+            self.VMWriter.writePush('constant', sizeToAlloc)
             self.VMWriter.writeCall('Memory.alloc', 1)
             self.VMWriter.writePop('pointer', 0)
         if subroutineType == 'method':

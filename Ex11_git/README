@@ -16,7 +16,8 @@ CompilationEngine.py - Compiler and a main function
 SymbolTable.py - stores symbols for VM writer
 VMWriter.py - writes to an array the different VM commands
 Tokenizer.py - Tokenizes a jack file to a tokenized array
-
+Makefile - recipe. 
+JackCompiler - ex.
 
 Remarks
 -------

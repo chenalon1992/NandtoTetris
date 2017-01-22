@@ -469,11 +469,15 @@ class Compiler:
         self.advanceIndex()
         if not self.checkMatchForToken(";"):
             ##TODO add another if condition here for some case
-            self.compileExpression()
+            if self.checkMatchForToken('this'):
+                self.VMWriter.writePush('pointer', 0)
+            else:
+                self.compileExpression()
         else:
             self.VMWriter.writePush('constant', 0)  #dummy value
         self.appendTokenizedLine(self.getCurToken())  #semicolon
         self.appendBlockTitle(False, "returnStatement")
+        self.VMWriter.writeReturn()
         self.advanceIndex()
         return
 
@@ -561,10 +565,10 @@ class Compiler:
             self.appendTokenizedLine(self.getCurToken())  #'constant'
             if getTokenType(self.getCurToken()) == 'integerConstant':
                 intVal = stripTags(self.getCurToken())
-                self.VMWriter.writePush('constant', 0)
+                self.VMWriter.writePush('constant', int(intVal))
             else:
-                pass
-                #TODO handle string constants
+                stringVal = stripTags(self.getCurToken())
+                self.VMWriteStringConst(stringVal)
             self.advanceIndex()
 
         elif stripTags(self.getCurToken()) in keywordConstantsTable:
@@ -607,7 +611,7 @@ class Compiler:
                 self.VMWriter.writePush(getKindAsSegment(self.symbolsTable.kindOf(varName)),
                                         self.symbolsTable.indexOf(varName))
                 self.VMWriter.writeArithmetic('add')
-                self.VMWriter.writepop('pointer', 1)
+                self.VMWriter.writePop('pointer', 1)
                 self.VMWriter.writePush('that', 0)
                 self.appendTokenizedLine(self.getCurToken())  #close square brackets
                 self.advanceIndex()
@@ -684,6 +688,16 @@ class Compiler:
             print("Error in compile subroutineCall", self.curIndex)
             return
 
+        return
+
+    def VMWriteStringConst(self, stringConst):
+        stringConst = stringConst.encode('unicode-escape')
+        stringLen = len(stringConst)
+        self.VMWriter.writePush('constant', stringLen)
+        self.VMWriter.writeCall('String.new', 1)
+        for char in stringConst:
+            self.VMWriter.writePush('constant', char)
+            self.VMWriter.writeCall('String.appendChar', 2)
         return
 
 

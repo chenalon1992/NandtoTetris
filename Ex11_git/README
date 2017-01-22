@@ -5,16 +5,19 @@ Chen Alon, ID 203573357, Chen.alon@mail.huji.ac.il
 ===============================================================================
 
                            Project 11 - Compile jack to VM
-                           ----------------------- 
+                           -------------------------------
   
 
 Submitted Files
 ---------------
 README - This file.
 
-
+CompilationEngine.py - Compiler and a main function
+SymbolTable.py - stores symbols for VM writer
+VMWriter.py - writes to an array the different VM commands
+Tokenizer.py - Tokenizes a jack file to a tokenized array
 
 
 Remarks
 -------
-
+"And what difference does it make? It makes none." - Steven Morrissey

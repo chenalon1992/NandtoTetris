@@ -4,173 +4,170 @@
 // File name: projects/12/Math.jack
 
 /**
- * A basic math library.
+ * A library of commonly used mathematical functions.
+ * Note: Jack compilers implement multiplication and division using OS method calls.
  */
 class Math {
+	static Array power2;
 
-    static Array twoToThe;
-    
     /** Initializes the library. */
     function void init() {
-        let twoToThe = Array.new(16);
-        let twoToThe[0] = 1;
-        let twoToThe[1] = 2;
-        let twoToThe[2] = 4;
-        let twoToThe[3] = 8;
-        let twoToThe[4] = 16;
-        let twoToThe[5] = 32;
-        let twoToThe[6] = 64;
-        let twoToThe[7] = 128;
-        let twoToThe[8] = 256;
-        let twoToThe[9] = 512;
-        let twoToThe[10] = 1024;
-        let twoToThe[11] = 2048;
-        let twoToThe[12] = 4096;
-        let twoToThe[13] = 8192;
-        let twoToThe[14] = 16384;
-        let twoToThe[15] = 32767 + 1;
-        return;
+		let power2 = Array.new(16);
+		let power2[0] = 1;
+		let power2[1] = 2;
+		let power2[2] = 4;
+		let power2[3] = 8;
+		let power2[4] = 16;
+		let power2[5] = 32;
+		let power2[6] = 64;
+		let power2[7] = 128;
+		let power2[8] = 256;
+		let power2[9] = 512;
+		let power2[10] = 1024;
+		let power2[11] = 2048;
+		let power2[12] = 4096;
+		let power2[13] = 8192;
+		let power2[14] = 16384;
+		let power2[15] = 16384 + 16384;
+		return;
     }
-
-    /** Returns the absolute value of x. */
-    function int abs(int x) {
-        if (x < 0) {
-            let x = -x;
-        }
-        return x;
-    }
-
-    /** Returns the product of x and y. */
-    function int multiply(int x, int y) {
-        var int sum, shiftedX, i;
-        var boolean b, isYnegative, isXnegative;
-        let isYnegative = false;
-        let isXnegative = false;
-        if (y < 0) {
-            let isYnegative = true;
-            let y = -y;
-        }
-        if (x < 0) {
-            let isXnegative = true;
-            let x = -x;
-        }        
-        let sum = 0;
-        let shiftedX = x;
-        let i = 0;
-        while (i < 16) {
-            let b = Math.bit(y, i);
-            if (b) {
-                let sum = sum + shiftedX;
-            }
-            let shiftedX = shiftedX + shiftedX;
-            let i = i + 1;
-        }
-        if (isYnegative){
-            let sum = -sum;
-        }
-        if (isXnegative){
-            let sum = -sum;
-        }        
-        return sum;
-    }
-
-    /** Returns the integer part of x/y. */
-    function int divide(int x, int y) {
-        var int q, ans;
-        
-        var boolean isXneg, isYneg;
-        let isXneg = false;
-        let isYneg = false;
-        if (x < 0) {
-            let isXneg = true;
-            let x = -x;
-        }
-        if (y < 0) {
-            let isYneg = true;
-            let y = -y;
-        }
-        
-        
-        // the algorithm
-        if (y > x) {
-            return 0;
-        }
-        if (y < 0) {
-            return 0;
-        }
-        let q = Math.divide(x, 2*y);
-        if ((x - Math.multiply((q+q), y)) < y) {
-            let ans = 2*q;
-        }
-        else {
-            let ans = 2*q + 1;
-        }
-        
-        
-        if (isXneg) {
-            let ans = -ans;
-        }
-        if (isYneg) {
-            let ans = -ans;
-        }
-        
-        return ans;
-    }
-
-    /** Returns the integer part of the square root of x. */
-    function int sqrt(int x) {
-        var int y, j, t;
-        let y = 0;
-        let j = 7;
-        while (j > -1) {
-            let t = (twoToThe[j]+y)*(twoToThe[j]+y);
-            if (~(t > x)) {
-                if (t > 0){
-                    let y = y + twoToThe[j];                
-                }
-            }
-            let j = j - 1;
-        }
-        return y;
-    }
-
-    /** Returns the greater number. */
-    function int max(int a, int b) {
-        if(a > b) {
-            return a;
-        }
-        return b;
-    }
-
-    /** Returns the smaller number. */
-    function int min(int a, int b) {
-        if(a < b) {
-            return a;
-        }
-        return b;    
-    }
-    
-    /** Returns true if the i-th bit of x is 1, false otherwise. */
-    function boolean bit(int x, int i) {
+	/**
+	*/
+	function bool helper(int x, int j) {
+		var bool temp1, temp2;
+		
+		let temp1 = x & power2[j];
+		let temp2 = temp1 = 0;
+		return (~(temp2));
+	}
+	
+	function boolean helper2(int x, int i) {
         var int a;
-        let a = twoToThe[i] & x;
+        let a = power2[i] & x;
         if (a > 0) {
             return true;
         }
         return false;
     }
-    
-    /** return the number shifted right 4 times */
-    function int divideBy16(int x) {
-        var int i, res;
-        let res = 0;
-        let i = 0;
-        while (i < 12){
-            if (Math.bit(x, (i+4))) {
-                let res = res + twoToThe[i];
-            }
-            let i = i + 1;
-        }
-        return res;
+	
+
+    /** Returns the absolute value of x. 
+	*/
+    function int abs(int x) {
+		if (x < 0) {
+			return -x;
+		}
+		return x;
     }
+	
+
+    /** Returns the product of x and y. 
+     *  When a Jack compiler detects the multiplication operator '*' in the 
+     *  program's code, it handles it by invoking this method. In other words,
+     *  the Jack expressions x*y and multiply(x,y) return the same value.
+     */
+    function int multiply(int x, int y) {
+		var int shiftx, sum, i;
+		let i = 0;
+		let sum = 0;
+		let shiftx = x;
+
+		while (i < 16) {
+			if (Math.helper(y, i)) {
+				let sum = sum + shiftx;
+			}
+			let shiftx = shiftx + shiftx;
+			let i = i + 1;
+		}
+		return sum;
+    }
+	
+
+    /** Returns the integer part of x/y.
+     *  When a Jack compiler detects the multiplication operator '/' in the 
+     *  program's code, it handles it by invoking this method. In other words,
+     *  the Jack expressions x/y and divide(x,y) return the same value.
+     */
+    function int divide(int x, int y) {
+		var int temp, res , abs_x, abs_y;
+		var boolean neg;
+
+		let neg = ( (y < 0) & (x > 0) | (y > 0) & (x < 0) );
+		//let neg =  ( (y > 0) & (x < 0) ) | ( (y < 0) & (x > 0) );
+		let abs_x = Math.abs(x);
+		let abs_y = Math.abs(y);
+
+		if (abs_y > abs_x | abs_y < 0) {
+			return 0;
+		}
+		let temp = Math.divide(abs_x, abs_y + abs_y);
+		if (abs_x - Math.multiply(abs_y, (temp + temp)) < abs_y ) {
+			let res = temp + temp;
+		}
+		else {
+			let res = temp + temp + 1;
+		}
+		if (neg) {
+			return -res;
+		}
+		return res;
+    }
+	
+
+    /** Returns the integer part of the stempuare root of x. */
+    function int sqrt(int x) {
+		var int y, i, k;
+		let i = 7;
+		let y = 0;
+
+		while (~(i < 0)) {   		
+			let k = y + power2[i];
+			let k = Math.multiply(k, k);
+			if (~(k > x) & (k > 0)) {
+				let y = y + power2[i];
+			}
+			let i = i - 1;
+		}
+		return y;
+
+    }
+	
+
+    /** Returns the greater number.*/
+    function int max(int a, int b) {
+		if (a > b) {
+			return a;
+		}
+		return b;
+	}
+
+    /** Returns the smaller number. */
+    function int min(int a, int b) {
+		if (a < b) {
+			return a;
+		}
+	return b;
+    }
+	
+
+	
+	/** divide by 16 */
+    function int shiftRight4(int x) {
+        var int idx, result,temp1,temp2;
+        let idx = 0;
+        let result = 0;
+        while (idx < 12){
+			let temp1 = idx+4;
+            if (Math.helper2(x, temp1)) {
+				let temp2 = power2[idx];
+                let result = result + temp2;
+            }
+            let idx = idx + 1;
+        }
+        return result;
+    }
+	
+	
+	
 }
+

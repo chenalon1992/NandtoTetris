@@ -1,0 +1,176 @@
+// This file is part of www.nand2tetris.org
+// and the book "The Elements of Computing Systems"
+// by Nisan and Schocken, MIT Press.
+// File name: projects/12/Math.jack
+
+/**
+ * A basic math library.
+ */
+class Math {
+
+    static Array twoToThe;
+    
+    /** Initializes the library. */
+    function void init() {
+        let twoToThe = Array.new(16);
+        let twoToThe[0] = 1;
+        let twoToThe[1] = 2;
+        let twoToThe[2] = 4;
+        let twoToThe[3] = 8;
+        let twoToThe[4] = 16;
+        let twoToThe[5] = 32;
+        let twoToThe[6] = 64;
+        let twoToThe[7] = 128;
+        let twoToThe[8] = 256;
+        let twoToThe[9] = 512;
+        let twoToThe[10] = 1024;
+        let twoToThe[11] = 2048;
+        let twoToThe[12] = 4096;
+        let twoToThe[13] = 8192;
+        let twoToThe[14] = 16384;
+        let twoToThe[15] = 32767 + 1;
+        return;
+    }
+
+    /** Returns the absolute value of x. */
+    function int abs(int x) {
+        if (x < 0) {
+            let x = -x;
+        }
+        return x;
+    }
+
+    /** Returns the product of x and y. */
+    function int multiply(int x, int y) {
+        var int sum, shiftedX, i;
+        var boolean b, isYnegative, isXnegative;
+        let isYnegative = false;
+        let isXnegative = false;
+        if (y < 0) {
+            let isYnegative = true;
+            let y = -y;
+        }
+        if (x < 0) {
+            let isXnegative = true;
+            let x = -x;
+        }        
+        let sum = 0;
+        let shiftedX = x;
+        let i = 0;
+        while (i < 16) {
+            let b = Math.bit(y, i);
+            if (b) {
+                let sum = sum + shiftedX;
+            }
+            let shiftedX = shiftedX + shiftedX;
+            let i = i + 1;
+        }
+        if (isYnegative){
+            let sum = -sum;
+        }
+        if (isXnegative){
+            let sum = -sum;
+        }        
+        return sum;
+    }
+
+    /** Returns the integer part of x/y. */
+    function int divide(int x, int y) {
+        var int q, ans;
+        
+        var boolean isXneg, isYneg;
+        let isXneg = false;
+        let isYneg = false;
+        if (x < 0) {
+            let isXneg = true;
+            let x = -x;
+        }
+        if (y < 0) {
+            let isYneg = true;
+            let y = -y;
+        }
+        
+        
+        // the algorithm
+        if (y > x) {
+            return 0;
+        }
+        if (y < 0) {
+            return 0;
+        }
+        let q = Math.divide(x, 2*y);
+        if ((x - Math.multiply((q+q), y)) < y) {
+            let ans = 2*q;
+        }
+        else {
+            let ans = 2*q + 1;
+        }
+        
+        
+        if (isXneg) {
+            let ans = -ans;
+        }
+        if (isYneg) {
+            let ans = -ans;
+        }
+        
+        return ans;
+    }
+
+    /** Returns the integer part of the square root of x. */
+    function int sqrt(int x) {
+        var int y, j, t;
+        let y = 0;
+        let j = 7;
+        while (j > -1) {
+            let t = (twoToThe[j]+y)*(twoToThe[j]+y);
+            if (~(t > x)) {
+                if (t > 0){
+                    let y = y + twoToThe[j];                
+                }
+            }
+            let j = j - 1;
+        }
+        return y;
+    }
+
+    /** Returns the greater number. */
+    function int max(int a, int b) {
+        if(a > b) {
+            return a;
+        }
+        return b;
+    }
+
+    /** Returns the smaller number. */
+    function int min(int a, int b) {
+        if(a < b) {
+            return a;
+        }
+        return b;    
+    }
+    
+    /** Returns true if the i-th bit of x is 1, false otherwise. */
+    function boolean bit(int x, int i) {
+        var int a;
+        let a = twoToThe[i] & x;
+        if (a > 0) {
+            return true;
+        }
+        return false;
+    }
+    
+    /** return the number shifted right 4 times */
+    function int divideBy16(int x) {
+        var int i, res;
+        let res = 0;
+        let i = 0;
+        while (i < 12){
+            if (Math.bit(x, (i+4))) {
+                let res = res + twoToThe[i];
+            }
+            let i = i + 1;
+        }
+        return res;
+    }
+}
